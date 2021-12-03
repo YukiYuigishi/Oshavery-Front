@@ -2,6 +2,7 @@ import type { NextPage } from "next";
 import { useState, useEffect, useContext } from "react";
 import { useWindowSize } from "react-use";
 import { withAuthenticationRequired } from "@auth0/auth0-react";
+import Image from "next/image";
 
 import Layout from "../../../../components/Layout";
 
@@ -17,57 +18,57 @@ import WebSocketController from "../../../../lib/WebSocketController";
 
 import style from "../../../../styles/pages/guild-channel.module.scss";
 import { userContext } from "../../../../stores/user";
-import { client } from "../../../../lib/client";
-import { myInfo } from "../../../../types/user";
+import client from "../../../../lib/client";
+import { MyInfo } from "../../../../types/user";
+
+const logo = "https://media.oshavery-app.net/logos/logo.png";
 
 const Oshavery: NextPage = () => {
-  const { width: window_width, height: window_height } = useWindowSize();
-  const [messages_height, setMessagesHeight] = useState<number>(937);
+  const { width: windowWidth, height: windowHeight } = useWindowSize();
+  const [messagesHeight, setMessagesHeight] = useState<number>(937);
   const [modalIsShow, setModalShow] = useState<boolean>(false);
-  const { userState, userDispatch } = useContext(userContext);
+  const { userDispatch } = useContext(userContext);
+
+  // メッセージリストの高さ変更
+  const changeMessagesHeight = () => {
+    if (process.browser) {
+      const inputTarget = document.getElementById("input_box");
+      if (inputTarget == null) return;
+
+      const inputHeight = inputTarget.clientHeight;
+      const setHeight = window.innerHeight - inputHeight;
+
+      setMessagesHeight(setHeight);
+    }
+  };
 
   useEffect(() => {
     if (process.browser) {
       setMessagesHeight(window.innerHeight);
     }
-    change_messages_height();
+    changeMessagesHeight();
 
-    if (!userState) {
-      client
-        .get<myInfo>("/users/me")
-        .then((res) => {
-          userDispatch({
-            type: "set",
-            newData: res.data,
-          });
-        })
-        .catch((error) => {});
-    }
-  }, []);
+    client
+      .get<MyInfo>("users/me")
+      .then((res) => {
+        userDispatch({
+          type: "set",
+          newData: res.data,
+        });
+      })
+      .catch(() => {});
+  }, [userDispatch]);
 
   // ウィンドウサイズ変更
   useEffect(() => {
-    change_messages_height();
-  }, [window_width, window_height]);
-
-  // メッセージリストの高さ変更
-  const change_messages_height = () => {
-    if (process.browser) {
-      const input_target = document.getElementById("input_box");
-      if (input_target == null) return;
-
-      const input_height = input_target.clientHeight;
-      const set_height = window.innerHeight - input_height;
-
-      setMessagesHeight(set_height);
-    }
-  };
+    changeMessagesHeight();
+  }, [windowWidth, windowHeight]);
 
   return (
-    <Layout pagetitle={`Oshavery`} isheader={false} isfooter={false}>
+    <Layout pagetitle="Oshavery">
       <div className={style.oshavery}>
         <div className={style.server_list}>
-          <img className={style.icon} src="https://media.oshavery-app.net/logos/logo.png" />
+          <Image className={style.icon} src={logo} alt="logo" />
           <ServerList />
         </div>
         <div className={style.left_side}>
@@ -78,17 +79,17 @@ const Oshavery: NextPage = () => {
           <ChannelList />
         </div>
         <div className={style.center}>
-          {/*ここで高さを変更*/}
+          {/* ここで高さを変更 */}
           <div
             className={style.messages}
             style={{
-              height: messages_height,
+              height: messagesHeight,
             }}
           >
             <MessageList />
           </div>
           <div className={style.input} id="input_box">
-            <InputMessageBox textarea_change_event={change_messages_height} />
+            <InputMessageBox textarea_change_event={changeMessagesHeight} />
           </div>
         </div>
         <div className={style.right_side}>

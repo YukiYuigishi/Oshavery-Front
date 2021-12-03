@@ -1,14 +1,14 @@
 import { FC, useState, ChangeEvent, useEffect } from "react";
-import { EmojiData, CustomEmoji } from "emoji-mart";
+import { CustomEmoji, BaseEmoji } from "emoji-mart";
 import { useRouter } from "next/router";
 
 import EmojiPicker from "../molecules/EmojiPicker";
 import SendButton from "../atoms/SendButton";
 import TextareaBox from "../atoms/TextareaBox";
-import UploadButton from "../atoms/UploadButton";
+// import UploadButton from "../atoms/UploadButton";
 
-import { client } from "../../lib/client";
-import { postMessageRes } from "../../types/message";
+import client from "../../lib/client";
+import { PostMessageRes } from "../../types/message";
 
 import style from "../../styles/app_components/organisms/InputMessageBox.module.scss";
 
@@ -27,26 +27,30 @@ const InputMessageBox: FC<Props> = (props) => {
   const { channelID } = router.query;
 
   const sendMessage = () => {
-    client
-      .post<postMessageRes>(`/channels/${channelID}/messages`, {
-        content: message,
-      })
-      .then((res) => {
-        setMessage("");
-      })
-      .catch((error) => {});
+    if (channelID !== undefined && !Array.isArray(channelID)) {
+      client
+        .post<PostMessageRes>(`/channels/${channelID}/messages`, {
+          content: message,
+        })
+        .then(() => {
+          setMessage("");
+        })
+        .catch((error) => {
+          throw error;
+        });
+    }
   };
 
   // ファイル関連
   const [eventtarget, setEventTarget] = useState<ChangeEvent<HTMLInputElement>>();
   const [filename, setFileName] = useState<string>("");
   const [fileurl, setFileUrl] = useState<string>("");
-  const [isSending, setIsSending] = useState<Boolean>(false);
-  const [isShow, setIsShow] = useState<Boolean>(false);
+  const [isSending, setIsSending] = useState<boolean>(false);
+  const [isShow, setIsShow] = useState<boolean>(false);
 
   const checkfile = (e: ChangeEvent<HTMLInputElement>) => {
-    const target = e.target;
-    const files = target.files;
+    const { target } = e;
+    const { files } = target;
     if (files == null) return;
     const file = files[0];
     if (file == null) return;
@@ -55,9 +59,9 @@ const InputMessageBox: FC<Props> = (props) => {
 
     // 最大ファイルサイズ(MB)
     const max = 200;
-    const max_size = max * 1048576;
+    const maxSize = max * 1048576;
 
-    if (filesize > max_size) {
+    if (filesize > maxSize) {
       target.value = "";
       return;
     }
@@ -95,15 +99,15 @@ const InputMessageBox: FC<Props> = (props) => {
 
     setIsShow(false);
     setIsSending(false);
-  }, [isSending]);
+  }, [eventtarget, isSending]);
 
-  //絵文字の入力
-  const selectEmoji = (e: EmojiData) => {
+  // 絵文字の入力
+  const selectEmoji = (e: BaseEmoji) => {
     console.log(e.id);
     setMessage(`${message}:${e.id}:`);
 
     // 折り返しに対応 バグがあるので見送り
-    //if (process.browser) {
+    // if (process.browser) {
     //  const target = document.getElementById("input_your_message") as HTMLInputElement;
     //  if (target == null) return;
 
@@ -113,10 +117,10 @@ const InputMessageBox: FC<Props> = (props) => {
     //  } else {
     //    target.style.height = `${target.scrollHeight}px`;
     //  }
-    //}
+    // }
   };
 
-  const onchange_event = (value: string) => {
+  const onChangeEvent = (value: string) => {
     setMessage(value);
 
     // 改行のみ
@@ -130,7 +134,7 @@ const InputMessageBox: FC<Props> = (props) => {
       if (target == null) return;
 
       target.style.height = "auto";
-      if (value == "") {
+      if (value === "") {
         target.style.height = "0";
       } else {
         target.style.height = `${target.scrollHeight}px`;
@@ -140,26 +144,28 @@ const InputMessageBox: FC<Props> = (props) => {
     }
   };
 
-  //test Data
+  // test Data
   const customEmojiData: CustomEmoji[] = [];
 
   return (
     <>
       <div className={style.outer}>
         <div className={style.messageBox}>
-          {false ? <UploadButton onChange={checkfile} /> : <></>}
+          {/*
+            {false ? <UploadButton onChange={checkfile} /> : <></>}
+          */}
           <div className={style.textarea}>
             <TextareaBox
               disabled={disabled}
               rows={rows}
-              onChange={onchange_event}
+              onChange={onChangeEvent}
               placeholder={placeholder}
               value={message}
               onKeyDown={sendMessage}
             />
           </div>
           <SendButton onClick={sendMessage} />
-          <EmojiPicker onSelect={selectEmoji} color={"#FFC266"} custom={customEmojiData} />
+          <EmojiPicker onSelect={selectEmoji} color="#FFC266" custom={customEmojiData} />
         </div>
       </div>
       {/*

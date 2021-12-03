@@ -8,10 +8,12 @@ import MarkdownItEmoji from "markdown-it-emoji";
 // KaTeXレンダコンポーネント
 // XSSの脆弱性があるらしいが、markdown-itの力で消えている
 // => ライブラリを変更することで解決
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore
 import MarkdownItKatex from "@iktakahiro/markdown-it-katex";
 // Emojiレンダリングコンポーネント
 // お願い！握りつぶさせて！
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore
 import { Emoji } from "emoji-mart";
 import HighlightJs from "highlight.js";
@@ -22,19 +24,20 @@ import ChannelName from "../atoms/ChannelName";
 
 import { userContext } from "../../stores/user";
 import { messagesContext } from "../../stores/message";
-import { message } from "../../types/message";
-import { client } from "../../lib/client";
+import { Message } from "../../types/message";
+import client from "../../lib/client";
 
 import style from "../../styles/app_components/organisms/MessageList.module.scss";
 
 // テスト用文字列
-const mkTestResponse = (authN: string): message => {
-  const ret: message = {
+/*
+const mkTestResponse = (authN: string): Message => {
+  const ret: Message = {
     id: Math.random().toString(32).substring(2),
     timestamp: new Date().getTime().toString(),
     author: {
       id: "test_author_id",
-      name: "NAME: " + authN,
+      name: `NAME: ${authN}`,
       avatarurl: "url",
       bot: false,
       state: 0,
@@ -59,26 +62,26 @@ const mkTestResponse = (authN: string): message => {
   ret.content = t[Math.floor(Math.random() * t.length)];
   return ret;
 };
-
+*/
 // コンポーネント本体
 // Markdownレンダリングのライブラリのインスタンスもここで持っている
 const MessageList: FC = () => {
   const { userState } = useContext(userContext);
   const { messagesState, messagesDispatch } = useContext(messagesContext);
 
-  const user_id = userState.user.id;
+  const userId = userState.user.id;
   const router = useRouter();
   const { guildID, channelID } = router.query;
   const [endPoint, setEndPoint] = useState<string>();
 
   // 初期化処理
   useEffect(() => {
+    if (channelID === undefined || Array.isArray(channelID)) {
+      throw new Error("no query");
+    }
     (async () => {
       try {
-        if (channelID == undefined) {
-          throw new Error("no query");
-        }
-        const fstData = await client.get<message[]>(`/channels/${channelID}/messages`, {
+        const fstData = await client.get<Message[]>(`/channels/${channelID}/messages`, {
           params: {
             limit: 100,
           },
@@ -108,11 +111,11 @@ const MessageList: FC = () => {
   // 新規スクロールがあった時に呼ばれる
   const fetchMoreData = async () => {
     try {
-      if (endPoint == undefined) {
+      if (endPoint === undefined) {
         throw new Error("no query");
       }
       const lastID = messagesState.messages.slice(-1)[0].id;
-      const newData = await client.get<message[]>(endPoint, {
+      const newData = await client.get<Message[]>(endPoint, {
         params: {
           limit: 100,
           before: lastID,
@@ -135,7 +138,7 @@ const MessageList: FC = () => {
     // markdown-it側である程度のサニタイズ処理は施されるようです
     html: false,
     linkify: true,
-    highlight: function (str, lang) {
+    highlight(str, lang) {
       if (lang && HighlightJs.getLanguage(lang)) {
         try {
           return HighlightJs.highlight(str, { language: lang }).value;
@@ -153,13 +156,14 @@ const MessageList: FC = () => {
   // emoji-martライブラリのカスタム絵文字を使うために面倒なことをしています
   md.use(MarkdownItEmoji);
 
-  md.renderer.rules.emoji = function (token, idx) {
+  md.renderer.rules.emoji = (token, idx) => {
     // EmojiコンポーネントがJSXかStringを返すクソ仕様のせいでtypescriptの恩恵を受けられません
-    var ret = Emoji({
+    const ret = Emoji({
       html: true,
       emoji: token[idx].markup,
       size: 16,
     });
+    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
     // @ts-ignore
     return ret as string;
   };
@@ -175,7 +179,7 @@ const MessageList: FC = () => {
   md.renderer.rules.link_open = function (tokens, idx, options, env, self) {
     const aIndex = tokens[idx].attrIndex("target");
 
-    let result = null;
+    const result = null;
 
     if (process.browser && aIndex < 0) {
       const pattern = `https?://${document.domain}[\w!?/+\-_~;.,*&@#$%()'[\]]+`;
@@ -192,10 +196,11 @@ const MessageList: FC = () => {
     return defaultRender(tokens, idx, options, env, self);
   };
 
-  if (messagesState.messages == undefined || channelID == undefined || guildID == undefined) return <></>;
+  if (messagesState.messages === undefined || channelID === undefined || guildID === undefined) return <></>;
 
   // 同一ユーザーによる連続投稿のカウント
   let countup = 0;
+  const mdBind = md.render.bind(md);
 
   return (
     <div className={style.messagelist}>
@@ -235,8 +240,8 @@ const MessageList: FC = () => {
           dataLength={messagesState.messages.length}
           next={fetchMoreData}
           style={{ display: "flex", flexDirection: "column-reverse", overflow: "hidden" }}
-          inverse={true}
-          hasMore={true}
+          inverse
+          hasMore
           loader={<h4>Loading...</h4>}
           scrollableTarget="scrollableDiv"
         >
@@ -249,20 +254,20 @@ const MessageList: FC = () => {
             .reverse()
             .map((value, index) => {
               // index0が最新
-              const messages_array = messagesState.messages;
-              let author_show = true;
+              const messagesArray = messagesState.messages;
+              let authorShow = true;
 
               // 配列の最後かどうか
-              if (index + 1 !== messages_array.length) {
+              if (index + 1 !== messagesArray.length) {
                 // 一つ前のデータ
-                const before_value = messages_array[index + 1];
+                const beforeValue = messagesArray[index + 1];
 
                 // 一つ前のメッセージの送信者が異なる
-                if (value.author.id != before_value.author.id) {
+                if (value.author.id !== beforeValue.author.id) {
                   countup = 0;
                 }
                 // 一つ前のメッセージが5分以内に送信されていない
-                else if (Number(value.timestamp) - Number(before_value.timestamp) >= 5 * 60000) {
+                else if (Number(value.timestamp) - Number(beforeValue.timestamp) >= 5 * 60000) {
                   countup = 0;
                 }
                 // 既に5件連続になっている
@@ -271,23 +276,23 @@ const MessageList: FC = () => {
                 }
                 // 連読処理
                 else {
-                  countup++;
-                  author_show = false;
+                  countup += 1;
+                  authorShow = false;
                 }
               }
 
               let isauthor = false;
 
               // 作成者が本人かどうか
-              if (value.author.id == user_id) isauthor = true;
+              if (value.author.id === userId) isauthor = true;
 
               return (
                 <ChannelMessage
                   key={value.id}
                   response={value}
-                  author_show={author_show}
+                  authorShow={authorShow}
                   isauthor={isauthor}
-                  renderer={md.render.bind(md)}
+                  renderer={mdBind}
                 />
               );
             })}

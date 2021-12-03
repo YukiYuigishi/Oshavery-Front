@@ -1,16 +1,17 @@
 import { FC, useState } from "react";
-//↑ please add ChangeEvent
+// ↑ please add ChangeEvent
 import UserIcon from "../atoms/UserIcon";
 
 type Props = {
   // setIcon: (file: File) => void;
-  //初回ログイン時飲み設定
+  // 初回ログイン時のみ設定
   defaultIcon?: string;
 };
-const IconUploader: FC<Props> = (props) => {
+
+const IconUploader: FC<Props> = ({ defaultIcon }) => {
   const [imgUrl, setImgUrl] = useState<string>("");
-  //set default icon
-  props.defaultIcon && setImgUrl(props.defaultIcon);
+  // set default icon
+  if (defaultIcon) setImgUrl(defaultIcon);
 
   /* backend待ち
   //handle input File
@@ -31,9 +32,15 @@ const IconUploader: FC<Props> = (props) => {
   return (
     <div>
       <UserIcon size={40} imgUrl={imgUrl} />
-      {/*false ? <input type="file" accept={"image/png, image/jpeg"} onChange={imageHandler} /> : <></>*/}
+      {/**
+         false ? <input type="file" accept={"image/png, image/jpeg"} onChange={imageHandler} /> : <></>
+      * */}
     </div>
   );
+};
+
+IconUploader.defaultProps = {
+  defaultIcon: "",
 };
 
 export default IconUploader;

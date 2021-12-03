@@ -1,16 +1,17 @@
 import { ChangeEvent, FC, useRef } from "react";
-import style from "../../styles/app_components/atoms/UploadButton.module.scss";
 import { AiOutlineUpload } from "react-icons/ai";
-type uploadProps = {
+import style from "../../styles/app_components/atoms/UploadButton.module.scss";
+
+type UploadProps = {
   onChange: (e: ChangeEvent<HTMLInputElement>) => void;
 };
-const UploadButton: FC<uploadProps> = (props) => {
+const UploadButton: FC<UploadProps> = (props) => {
   const inputRef = useRef(null);
   return (
-    <label className={style.upload}>
+    <div className={style.upload}>
       <AiOutlineUpload size={26} />
       <input hidden id="uploadButton" ref={inputRef} type="file" onChange={props.onChange} />
-    </label>
+    </div>
   );
 };
 

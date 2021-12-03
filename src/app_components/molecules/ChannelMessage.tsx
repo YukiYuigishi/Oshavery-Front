@@ -1,29 +1,26 @@
 import React from "react";
 import type { FC } from "react";
+import Image from "next/image";
 
+import { AiFillDelete } from "react-icons/ai";
 import MessageContent from "../atoms/MessageContent";
-import { message } from "../../types/message";
+import { Message } from "../../types/message";
 
 import style from "../../styles/app_components/molecules/ChannelMessage.module.scss";
 import Button from "../atoms/Button";
-import { AiFillDelete } from "react-icons/ai";
 
 interface Props {
-  response: message;
+  response: Message;
   // author情報を表示するか
-  author_show: boolean;
+  authorShow: boolean;
   // author本人かどうか
   isauthor: boolean;
   renderer: (content: string) => string;
 }
 
 const ChannelMessage: FC<Props> = (props) => {
-  const res: message = props.response;
-  const author_avatar: string = res.author.avatarurl;
-  const author_name = res.author.name;
-
-  const res_datetime = new Date(Date.parse(res.timestamp));
-  const datetime = new Date(res_datetime.getTime());
+  const resDatetime = new Date(Date.parse(props.response.timestamp));
+  const datetime = new Date(resDatetime.getTime());
 
   // 今日ですか？
   const istoday = (date: Date) => {
@@ -32,8 +29,8 @@ const ChannelMessage: FC<Props> = (props) => {
 
     if (
       date.getFullYear() === today.getFullYear() &&
-      date.getMonth() == today.getMonth() &&
-      date.getDay() == today.getDay()
+      date.getMonth() === today.getMonth() &&
+      date.getDay() === today.getDay()
     ) {
       result = true;
     }
@@ -49,8 +46,8 @@ const ChannelMessage: FC<Props> = (props) => {
 
     if (
       date.getFullYear() === yesterday.getFullYear() &&
-      date.getMonth() == yesterday.getMonth() &&
-      date.getDay() == yesterday.getDay()
+      date.getMonth() === yesterday.getMonth() &&
+      date.getDay() === yesterday.getDay()
     ) {
       result = true;
     }
@@ -66,8 +63,8 @@ const ChannelMessage: FC<Props> = (props) => {
 
     if (
       date.getFullYear() === todaysago.getFullYear() &&
-      date.getMonth() == todaysago.getMonth() &&
-      date.getDay() == todaysago.getDay()
+      date.getMonth() === todaysago.getMonth() &&
+      date.getDay() === todaysago.getDay()
     ) {
       result = true;
     }
@@ -88,9 +85,7 @@ const ChannelMessage: FC<Props> = (props) => {
   };
 
   // ゼロ埋め関数
-  const fillzero = (num: number, digit: number) => {
-    return `${"0".repeat(digit)}${num}`.slice(-1 * digit);
-  };
+  const fillzero = (num: number, digit: number) => `${"0".repeat(digit)}${num}`.slice(-1 * digit);
 
   const time = `${fillzero(datetime.getHours(), 2)}:${fillzero(datetime.getMinutes(), 2)}`;
   let timestamp = time;
@@ -106,61 +101,32 @@ const ChannelMessage: FC<Props> = (props) => {
     )} ${time}`;
 
   // メッセージを削除する関数
-  const deleteMessage = () => {
-    console.log("メッセージを削除");
-  };
+  const deleteMessage = () => {};
 
   // dangerousな文字をHTMLにして表示してるの怖くね
-  if (props.author_show) {
+  if (props.authorShow) {
     return (
       <div className={style.fullcontent}>
         <div className={style.left_side}>
-          <img className={style.image} src={author_avatar} />
+          <Image className={style.image} src={props.response.author.avatarurl} alt={props.response.author.name} />
         </div>
         <div>
+          {" "}
           <div>
-            <span className={style.name}>{author_name}</span>
+            {" "}
+            <span className={style.name}>{props.response.author.avatarurl}</span>
             <span className={style.timestamp}>{timestamp}</span>
           </div>
           {/* Markdown描画部 */}
           <div className={style.messagecontent}>
-            <MessageContent content={res.content} renderer={props.renderer} />
+            <MessageContent content={props.response.content} renderer={props.renderer} />
           </div>
         </div>
         <div className={style.messagebuttons}>
-          {false ? (
-            props.isauthor ? (
-              <Button onClick={() => deleteMessage()}>
-                <AiFillDelete />
-              </Button>
-            ) : (
-              <></>
-            )
-          ) : (
-            <></>
-          )}
-        </div>
-      </div>
-    );
-  } else {
-    return (
-      <div className={style.simplecontent}>
-        <div className={style.left_side}>
-          <span className={style.timestamp}>{time}</span>
-        </div>
-        {/* Markdown描画部 */}
-        <div className={style.messagecontent}>
-          <MessageContent content={res.content} renderer={props.renderer} />
-        </div>
-        <div className={style.messagebuttons}>
-          {false ? (
-            props.isauthor ? (
-              <Button onClick={() => deleteMessage()}>
-                <AiFillDelete />
-              </Button>
-            ) : (
-              <></>
-            )
+          {props.isauthor ? (
+            <Button onClick={() => deleteMessage()}>
+              <AiFillDelete />
+            </Button>
           ) : (
             <></>
           )}
@@ -168,6 +134,23 @@ const ChannelMessage: FC<Props> = (props) => {
       </div>
     );
   }
+  return (
+    <div className={style.simplecontent}>
+      <div className={style.left_side}>
+        <span className={style.timestamp}>{time}</span>
+      </div>
+      {/* Markdown描画部 */}
+      <div className={style.messagecontent}>
+        <MessageContent content={props.response.content} renderer={props.renderer} />
+      </div>
+      <div className={style.messagebuttons}>
+        props.isauthor ? (
+        <Button onClick={() => deleteMessage()}>
+          <AiFillDelete />
+        </Button>
+      </div>
+    </div>
+  );
 };
 
 export default React.memo(ChannelMessage);

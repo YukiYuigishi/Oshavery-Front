@@ -1,12 +1,12 @@
 import React, { useContext, useEffect, useState } from "react";
 import type { FC } from "react";
 
+import { useRouter } from "next/router";
 import ChannelCard from "../atoms/ChannelCard";
 import NameCard from "../atoms/NameCard";
 
-import { guild } from "../../types/guild";
+import { Guild } from "../../types/guild";
 import { userContext } from "../../stores/user";
-import { useRouter } from "next/router";
 
 import style from "../../styles/app_components/organisms/ChannelList.module.scss";
 
@@ -16,13 +16,13 @@ const ChannelList: FC = () => {
   const router = useRouter();
   const { guildID, channelID } = router.query;
 
-  const [nowGuild, setNowGuild] = useState<guild>();
+  const [nowGuild, setNowGuild] = useState<Guild>();
 
   useEffect(() => {
     setNowGuild(userState.user.guilds[userState.user.guilds.findIndex((item) => item.id === guildID)]);
   }, [userState, guildID]);
 
-  if (nowGuild == undefined) return <></>;
+  if (nowGuild === undefined) return <></>;
 
   return (
     <div className={style.channellist}>
@@ -30,18 +30,17 @@ const ChannelList: FC = () => {
         <NameCard name={nowGuild.name} />
       </div>
       <div className={style.channels}>
-        {nowGuild.channels.map((value) => {
-          return (
-            <ChannelCard
-              key={value.id}
-              channel_name={value.name}
-              channel_topics={value.topics}
-              channel_type={value.type}
-              link={`/guild/${guildID}/channel/${value.id}`}
-              selected={value.id === channelID}
-            />
-          );
-        })}
+        {nowGuild.channels.map((value) => (
+          <ChannelCard
+            key={value.id}
+            channel_name={value.name}
+            //  未実装のためコメントアウト
+            //  ChannelTopics={value.topics}
+            channel_type={value.type}
+            link={`/guild/${guildID !== undefined && !Array.isArray(guildID) ? guildID : ""}/channel/${value.id}`}
+            selected={value.id === channelID}
+          />
+        ))}
       </div>
     </div>
   );

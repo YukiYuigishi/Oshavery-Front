@@ -3,10 +3,10 @@ import Image from "next/image";
 import { useContext, useEffect } from "react";
 import { useAuth0 } from "@auth0/auth0-react";
 
-import { client } from "../lib/client";
 import { useRouter } from "next/router";
+import client from "../lib/client";
 import { userContext } from "../stores/user";
-import { createUserRes, myInfo } from "../types/user";
+import { CreateUserRes, MyInfo } from "../types/user";
 
 import logo from "../../public/logo.png";
 import style from "../styles/pages/loading.module.scss";
@@ -16,58 +16,73 @@ const Loading: NextPage = () => {
   const { getAccessTokenSilently } = useAuth0();
   const { userDispatch } = useContext(userContext);
 
+  const createUser = async (): Promise<MyInfo> => {
+    try {
+      await client.post<CreateUserRes>("/users");
+    } catch (e) {
+      throw new Error("failed to create User");
+    }
+
+    try {
+      const res = await client.get<MyInfo>("/users/me");
+      return res.data;
+    } catch (e2) {
+      throw new Error("failed to get myInfo");
+    }
+  };
+
   useEffect(() => {
-    (async () => {
+    const routing = async (): Promise<MyInfo> => {
       try {
         const jwt = await getAccessTokenSilently({
           audience: process.env.NEXT_PUBLIC_APIENDPOINT,
           scope: "read:all",
         });
-        client.defaults.headers.common["Authorization"] = `Bearer ${jwt}`;
+        client.defaults.headers += { Authorization: `Bearer ${jwt}` };
+      } catch (e) {
+        throw new Error("auth0 error");
+      }
 
-        const myInfo = await client.get<myInfo>("/users/me");
-
-        console.log(myInfo.data);
-
+      try {
+        const res = await client.get<MyInfo>("/users/me");
         userDispatch({
           type: "set",
-          newData: myInfo.data,
+          newData: res.data,
         });
+        return res.data;
 
-        await router.push({
-          pathname: "/guild/[guildID]/channel/[channelID]",
-          query: {
-            guildID: myInfo.data.guilds[0].id,
-            channelID: myInfo.data.guilds[0].channels[0].id,
-          },
-        });
-      } catch (e) {
-        console.log(e);
+        /*  以下、ユーザー情報取得失敗時  */
+      } catch (e2) {
         try {
-          const user = await client.post<createUserRes>("/users");
-          const myInfo = await client.get("/users/me");
-
+          const res = await createUser();
           userDispatch({
             type: "set",
-            newData: myInfo.data,
+            newData: res,
           });
-
-          await router.push({
-            pathname: "/guild/[guildID]/channel/[channelID]",
-            query: {
-              guildID: myInfo.data.guilds[0].id,
-              channelID: myInfo.data.guilds[0].channels[0].id,
-            },
-          });
-        } catch (e) {
-          console.log(e);
-          await router.push("/").catch((error) => {
-            console.log(error);
-          });
+          return res;
+        } catch (e3) {
+          /*  ユーザー作成・作成したユーザー情報取得失敗  */
+          throw new Error(e3);
         }
       }
-    })();
-  }, [router, userDispatch]);
+    };
+
+    routing()
+      .then((value) => {
+        router
+          .push({
+            pathname: "/guild/[guildID]/channel/[channelID]",
+            query: {
+              guildID: value.guilds[0].id,
+              channelID: value.guilds[0].channels[0].id,
+            },
+          })
+          .catch(() => {});
+      })
+      .catch(() => {
+        router.push("/").catch(() => {});
+      });
+  }, [getAccessTokenSilently, router, userDispatch]);
 
   return (
     <div className={style.loading}>

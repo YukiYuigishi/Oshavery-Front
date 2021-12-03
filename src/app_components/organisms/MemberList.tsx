@@ -1,31 +1,30 @@
-import React, { useContext, useEffect } from "react";
+import React, { useContext, useEffect, useState, useCallback } from "react";
 import type { FC } from "react";
-import { useState, useCallback } from "react";
 
+import { useRouter } from "next/router";
 import MemberCard from "../atoms/MemberCard";
 
 import member_style from "../../styles/app_components/atoms/MemberCard.module.scss";
-import { useRouter } from "next/router";
-import { user } from "../../types/user";
+import { User } from "../../types/user";
 import { userContext } from "../../stores/user";
 
 import style from "../../styles/app_components/organisms/MemberList.module.scss";
-import { client } from "../../lib/client";
+import client from "../../lib/client";
 
 const MemberList: FC = () => {
   const [isShow, setIsShow] = useState(false);
 
   const router = useRouter();
   const { guildID } = router.query;
-  const [members, setMembers] = useState<user[]>();
+  const [members, setMembers] = useState<User[]>();
   const { userState, userDispatch } = useContext(userContext);
 
   // メンバーポップアップのクリア
-  const clear_memberpopup = useCallback(() => {
+  const clearMemmberPopp = useCallback(() => {
     if (process.browser) {
       const elements: HTMLCollectionOf<Element> = document.getElementsByClassName(member_style.memberpopup);
 
-      for (let i = 0; i < elements.length; i++) {
+      for (let i = 0; i < elements.length; i += 1) {
         elements[i].className = member_style.memberpopup;
       }
 
@@ -34,7 +33,7 @@ const MemberList: FC = () => {
   }, []);
 
   // 引数のIDのクラスを変更（メンバーポップアップ表示）
-  const show_memberpopup = useCallback(
+  const showMemberPopup = useCallback(
     (target_id: string) => {
       if (process.browser) {
         const target: HTMLElement | null = document.getElementById(target_id);
@@ -44,58 +43,58 @@ const MemberList: FC = () => {
         }
 
         if (target.className.indexOf(member_style.show) !== -1) {
-          clear_memberpopup();
+          clearMemmberPopp();
           return;
-        } else {
-          clear_memberpopup();
         }
+        clearMemmberPopp();
 
         target.className = `${member_style.memberpopup} ${member_style.show}`;
         setIsShow(true);
       }
     },
-    [clear_memberpopup],
+    [clearMemmberPopp],
   );
 
   // クリックイベント
-  const check_click = (e: any) => {
-    const class_name = String(e.target.className);
+  const CheckClick = (e: MouseEvent) => {
+    const target = e.target as HTMLElement;
+    const clickedClassName = target.className;
 
-    if (class_name.indexOf("member_element") !== -1) {
-      return;
+    if (clickedClassName.indexOf("member_element") !== -1) {
+      return null;
     }
 
-    if (class_name.indexOf("memberpopup_element") !== -1) {
-      return;
+    if (clickedClassName.indexOf("memberpopup_element") !== -1) {
+      return null;
     }
 
     if (!isShow) {
-      return;
+      return null;
     }
 
-    clear_memberpopup();
+    clearMemmberPopp();
+
+    return null;
   };
 
   if (process.browser) {
-    document.body.onclick = check_click;
+    document.body.onclick = CheckClick;
   }
 
   useEffect(() => {
-    if (guildID != undefined) {
-      (async () => {
-        try {
-          const res = await client.get<user[]>(`/guilds/${guildID}/members`);
+    if (guildID !== undefined && !Array.isArray(guildID)) {
+      client
+        .get<User[]>(`/guilds/${guildID}/members`)
+        .then((res) => {
           userDispatch({
             type: "setMember",
             newData: res.data,
           });
           setMembers(res.data);
-        } catch (e) {
-          console.log(e);
-        }
-      })();
+        })
+        .catch(() => {});
     }
-  }, [userState, guildID]);
+  }, [userDispatch, userState, guildID]);
 
   /*
   UserId代用のHTML要素ID
@@ -113,7 +112,7 @@ const MemberList: FC = () => {
   };
   */
 
-  if (members == undefined) return <></>;
+  if (members === undefined) return <></>;
 
   return (
     <div className={style.memberlist}>
@@ -125,7 +124,7 @@ const MemberList: FC = () => {
           name={value.name}
           avatar={value.avatar}
           bot={value.bot}
-          func_show_memberpopup={show_memberpopup}
+          func_show_memberpopup={showMemberPopup}
         />
       ))}
     </div>
